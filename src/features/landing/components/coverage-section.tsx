@@ -1,6 +1,6 @@
 import { ArrowRight, Building2, Mail, MapPin, Phone } from "lucide-react";
-import { FadeUp, SectionReveal } from "@/components/landing/section-reveal";
-import { SectionHeading } from "@/components/landing/section-heading";
+import { FadeUp, SectionReveal } from "@/features/landing/components/section-reveal";
+import { SectionHeading } from "@/features/landing/components/section-heading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 

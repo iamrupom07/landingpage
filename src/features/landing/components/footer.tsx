@@ -1,4 +1,4 @@
-import { BrandLogo } from "@/components/landing/brand-logo";
+import { BrandLogo } from "@/features/landing/components/brand-logo";
 
 const footerGroups = [
   {

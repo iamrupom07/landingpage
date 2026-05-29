@@ -1,6 +1,6 @@
 import { Clock3, FileCheck2, ShieldCheck, Users } from "lucide-react";
-import { FadeUp, SectionReveal } from "@/components/landing/section-reveal";
-import { LeadCaptureForm } from "@/components/landing/lead-capture-form";
+import { FadeUp, SectionReveal } from "@/features/landing/components/section-reveal";
+import { LeadCaptureForm } from "@/features/landing/components/lead-capture-form";
 
 const quoteBenefits = [
   { label: "Custom plan recommendation", icon: FileCheck2 },

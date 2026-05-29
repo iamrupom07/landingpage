@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRight, CheckCircle2, LoaderCircle, LockKeyhole } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -40,6 +41,7 @@ function FieldError({ message, id }: FieldErrorProps) {
 }
 
 export function LeadCaptureForm() {
+  const router = useRouter();
   const [successId, setSuccessId] = useState<string | null>(null);
   const {
     register,
@@ -58,6 +60,7 @@ export function LeadCaptureForm() {
     if (result.ok) {
       setSuccessId(result.referenceId);
       reset(defaultValues);
+      router.push("/thank-you");
     }
   }
 

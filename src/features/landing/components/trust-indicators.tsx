@@ -1,5 +1,5 @@
 import { Headphones, LockKeyhole, MapPinned, ShieldCheck } from "lucide-react";
-import { FadeUp, SectionReveal } from "@/components/landing/section-reveal";
+import { FadeUp, SectionReveal } from "@/features/landing/components/section-reveal";
 
 const indicators = [
   {

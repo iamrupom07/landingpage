@@ -5,6 +5,7 @@ const config: Config = {
     "./src/pages/**/*.{ts,tsx}",
     "./src/components/**/*.{ts,tsx}",
     "./src/app/**/*.{ts,tsx}",
+    "./src/features/**/*.{ts,tsx}",
     "./src/lib/**/*.{ts,tsx}"
   ],
   theme: {
@@ -61,9 +62,8 @@ const config: Config = {
       },
       fontFamily: {
         sans: [
-          "var(--font-dm-sans)",
-          "DM Sans",
-          "Aptos",
+          "Inter",
+          "Plus Jakarta Sans",
           "ui-sans-serif",
           "system-ui",
           "-apple-system",
@@ -72,10 +72,8 @@ const config: Config = {
           "sans-serif"
         ],
         display: [
-          "var(--font-syne)",
-          "Syne",
-          "var(--font-dm-sans)",
-          "DM Sans",
+          "Plus Jakarta Sans",
+          "Inter",
           "ui-sans-serif",
           "system-ui",
           "sans-serif"

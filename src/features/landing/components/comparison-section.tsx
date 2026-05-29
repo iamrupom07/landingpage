@@ -1,6 +1,6 @@
 import { ArrowRight, CheckCircle2, TrendingDown, TriangleAlert } from "lucide-react";
-import { FadeUp, SectionReveal } from "@/components/landing/section-reveal";
-import { SectionHeading } from "@/components/landing/section-heading";
+import { FadeUp, SectionReveal } from "@/features/landing/components/section-reveal";
+import { SectionHeading } from "@/features/landing/components/section-heading";
 
 const columns = [
   {

@@ -1,5 +1,5 @@
-import { SectionReveal } from "@/components/landing/section-reveal";
-import { SectionHeading } from "@/components/landing/section-heading";
+import { SectionReveal } from "@/features/landing/components/section-reveal";
+import { SectionHeading } from "@/features/landing/components/section-heading";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 const faqs = [

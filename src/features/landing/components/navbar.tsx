@@ -1,5 +1,5 @@
 import { ArrowRight } from "lucide-react";
-import { BrandLogo } from "@/components/landing/brand-logo";
+import { BrandLogo } from "@/features/landing/components/brand-logo";
 import { Button } from "@/components/ui/button";
 
 const navItems = [

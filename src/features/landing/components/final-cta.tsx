@@ -1,5 +1,5 @@
 import { ArrowRight } from "lucide-react";
-import { SectionReveal } from "@/components/landing/section-reveal";
+import { SectionReveal } from "@/features/landing/components/section-reveal";
 import { Button } from "@/components/ui/button";
 
 export function FinalCta() {
