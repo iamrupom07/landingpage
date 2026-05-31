@@ -38,18 +38,40 @@ export async function apiFetch<T = unknown>(
 
   const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
 
-  // CSV / binary responses
+  // CSV / binary responses — return early before any JSON parsing
   if (res.headers.get("content-type")?.includes("text/csv")) {
     return res as unknown as T;
   }
 
-  const json = await res.json();
+  // FIX: parse JSON safely — the server may return an empty body (e.g. 204,
+  // rate-limit responses, or network-level errors that reach us as HTML).
+  // Calling res.json() on a non-JSON body throws a SyntaxError that bypasses
+  // ApiError entirely and surfaces as an unhandled "Internal server error" on
+  // the client. We guard it here so every error path becomes a clean ApiError.
+  let json: Record<string, unknown> = {};
+  const contentType = res.headers.get("content-type") ?? "";
+  if (contentType.includes("application/json")) {
+    try {
+      json = await res.json();
+    } catch {
+      // Body was declared as JSON but couldn't be parsed (truncated, empty, etc.)
+      if (!res.ok) {
+        throw new ApiError(res.status, `Request failed (${res.status})`);
+      }
+    }
+  } else if (!res.ok) {
+    // Non-JSON error body (HTML rate-limit page, proxy error, etc.)
+    throw new ApiError(
+      res.status,
+      `Request failed (${res.status} ${res.statusText || "Unknown Error"})`
+    );
+  }
 
   if (!res.ok) {
     throw new ApiError(
       res.status,
-      json.message ?? "Request failed",
-      json.errors
+      (json.message as string) ?? "Request failed",
+      json.errors as Record<string, string[]> | undefined
     );
   }
 
