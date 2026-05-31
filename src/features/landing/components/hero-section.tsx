@@ -1,7 +1,8 @@
 "use client";
 
+import { useRef } from "react";
 import Image from "next/image";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion, useInView } from "framer-motion";
 import { ArrowRight, BarChart3, CheckCircle2, ShieldCheck, Wifi } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,21 +15,37 @@ const heroStats = [
 
 const heroPills = ["No hidden fees", "Static IP options", "Local install team"];
 
+// BUG FIX: The original had 3 Framer Motion infinity animations running
+// permanently — background gradient pulse, and both floating cards —
+// consuming CPU/GPU even when the section scrolled out of view.
+// Fix: gate all repeat:Infinity animations on useInView so they pause
+// automatically when the section is not visible.
 export function HeroSection() {
   const reduceMotion = useReducedMotion();
+  const sectionRef = useRef<HTMLElement>(null);
+  const inView = useInView(sectionRef, { amount: 0.1 });
+
+  // Only run infinity animations when visible AND motion is not reduced
+  const shouldAnimate = inView && !reduceMotion;
 
   return (
-    <section id="top" className="hero-shell relative isolate overflow-hidden border-b border-slate-200/80 py-16 sm:py-20 lg:py-24">
+    <section
+      ref={sectionRef}
+      id="top"
+      className="hero-shell relative isolate overflow-hidden border-b border-slate-200/80 py-16 sm:py-20 lg:py-24"
+    >
       <div
         aria-hidden="true"
         className="absolute inset-0 bg-[linear-gradient(rgba(15,23,42,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,0.035)_1px,transparent_1px)] bg-[size:54px_54px] [mask-image:linear-gradient(to_bottom,black,transparent_82%)]"
       />
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/50 to-transparent" />
+
+      {/* BUG FIX: was always-running — now gated on shouldAnimate */}
       <motion.div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-12 h-64 bg-[linear-gradient(90deg,rgba(37,99,235,0),rgba(37,99,235,0.14),rgba(16,185,129,0.16),rgba(37,99,235,0))] blur-3xl"
-        animate={reduceMotion ? undefined : { opacity: [0.55, 0.82, 0.55], x: [-24, 24, -24] }}
-        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+        animate={shouldAnimate ? { opacity: [0.55, 0.82, 0.55], x: [-24, 24, -24] } : { opacity: 0.55, x: 0 }}
+        transition={{ duration: 10, repeat: shouldAnimate ? Infinity : 0, ease: "easeInOut" }}
       />
 
       <div className="container relative grid items-center gap-12 lg:grid-cols-[0.98fr_1.02fr]">
@@ -108,10 +125,11 @@ export function HeroSection() {
             />
           </div>
 
+          {/* BUG FIX: floating cards were always-running — now gated on shouldAnimate */}
           <motion.div
             className="absolute -left-3 bottom-8 hidden w-48 rounded-lg border border-white/80 bg-white/90 p-4 shadow-lift backdrop-blur-xl sm:block"
-            animate={reduceMotion ? undefined : { y: [0, -10, 0] }}
-            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+            animate={shouldAnimate ? { y: [0, -10, 0] } : { y: 0 }}
+            transition={{ duration: 5, repeat: shouldAnimate ? Infinity : 0, ease: "easeInOut" }}
           >
             <div className="flex items-center gap-3">
               <span className="grid h-10 w-10 place-items-center rounded-lg bg-emerald-50 text-emerald-600">
@@ -126,8 +144,8 @@ export function HeroSection() {
 
           <motion.div
             className="absolute right-3 top-6 hidden w-44 rounded-lg border border-white/80 bg-white/90 p-4 shadow-lift backdrop-blur-xl md:block"
-            animate={reduceMotion ? undefined : { y: [0, 10, 0] }}
-            transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
+            animate={shouldAnimate ? { y: [0, 10, 0] } : { y: 0 }}
+            transition={{ duration: 5.5, repeat: shouldAnimate ? Infinity : 0, ease: "easeInOut" }}
           >
             <p className="text-sm font-semibold text-slate-500">Starting at</p>
             <p className="font-display mt-1 text-2xl font-extrabold text-slate-950">$59.99/mo</p>

@@ -5,10 +5,21 @@ import { Footer } from "@/features/landing/components/footer";
 
 export const metadata = {
   title: "Quote Request Received | Kinetic Business",
-  description: "Your business internet quote request has been received. A Kinetic Business specialist will be in touch shortly.",
+  description:
+    "Your business internet quote request has been received. A Kinetic Business specialist will be in touch shortly.",
 };
 
-export default function ThankYouPage() {
+// BUG FIX: accept searchParams so we can display the referenceId that was
+// passed from the form as ?ref=KB-XXXXXX (the original code set state then
+// immediately navigated away, so the success block was never rendered).
+export default async function ThankYouPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ref?: string }>;
+}) {
+  const params = await searchParams;
+  const ref = params.ref;
+
   return (
     <>
       <Navbar />
@@ -20,6 +31,11 @@ export default function ThankYouPage() {
           <h1 className="font-display text-3xl font-extrabold text-slate-950 sm:text-4xl">
             Request Received!
           </h1>
+          {ref ? (
+            <p className="mt-3 inline-block rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-sm font-bold text-emerald-700">
+              Reference: {ref}
+            </p>
+          ) : null}
           <p className="mt-4 text-lg text-slate-600 leading-relaxed">
             Thanks for reaching out. A Kinetic Business specialist will review your requirements and follow up within{" "}
             <strong className="text-slate-950">1 business day</strong> with a tailored quote.
@@ -43,11 +59,17 @@ export default function ThankYouPage() {
                 <p className="text-sm font-bold text-slate-900">Need Help Now?</p>
               </div>
               <div className="space-y-2">
-                <a href="tel:+18005551234" className="flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:underline">
-                  <Phone className="h-3.5 w-3.5" /> (800) 555-1234
+                <a
+                  href="tel:+15552189044"
+                  className="flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:underline"
+                >
+                  <Phone className="h-3.5 w-3.5" /> (555) 218-9044
                 </a>
-                <a href="mailto:sales@kinetic.biz" className="flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:underline">
-                  <Mail className="h-3.5 w-3.5" /> sales@kinetic.biz
+                <a
+                  href="mailto:business@kinetic.example"
+                  className="flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:underline"
+                >
+                  <Mail className="h-3.5 w-3.5" /> business@kinetic.example
                 </a>
               </div>
             </div>

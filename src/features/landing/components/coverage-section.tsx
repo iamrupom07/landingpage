@@ -1,15 +1,18 @@
-import { ArrowRight, Building2, Mail, MapPin, Phone } from "lucide-react";
+import { Building2, Mail, MapPin, Phone } from "lucide-react";
 import { FadeUp, SectionReveal } from "@/features/landing/components/section-reveal";
 import { SectionHeading } from "@/features/landing/components/section-heading";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 const contactItems = [
-  { label: "(555) 218-9044", icon: Phone },
-  { label: "business@kinetic.example", icon: Mail },
-  { label: "1200 Market Street, Suite 400", icon: Building2 }
+  { label: "(555) 218-9044", icon: Phone, href: "tel:+15552189044" },
+  { label: "business@kinetic.example", icon: Mail, href: "mailto:business@kinetic.example" },
+  { label: "1200 Market Street, Suite 400", icon: Building2, href: null }
 ];
 
+// BUG FIX: Removed the dead "Check Availability" form — the Input + Button
+// had type="button" and no onClick handler, so clicking it did nothing.
+// This actively harmed trust (users thought the site was broken).
+// Replaced with a direct link to the #quote section and honest availability
+// messaging, per option A in the audit report.
 export function CoverageSection() {
   return (
     <SectionReveal id="coverage" className="bg-white">
@@ -53,32 +56,40 @@ export function CoverageSection() {
               align="left"
               eyebrow="Coverage"
               title="Business Connectivity Where You Need It"
-              description="Check service availability for your office, storefront, warehouse, or multi-location business. Our local specialists can recommend the best plan for your address."
+              description="We serve offices, storefronts, warehouses, and multi-location businesses across the metro area. Contact our local specialists to confirm availability and get the best plan for your address."
             />
 
-            <form className="mt-8 rounded-lg border border-slate-200 bg-white p-4 shadow-sm" aria-label="Service availability checker">
-              <label htmlFor="availability-address" className="mb-3 block text-sm font-semibold text-slate-800">
-                Business address
-              </label>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <Input id="availability-address" placeholder="Enter your business address" />
-                <Button type="button" variant="primary" className="shrink-0">
-                  Check Availability
-                  <ArrowRight aria-hidden="true" />
-                </Button>
-              </div>
-            </form>
+            {/* Availability callout — replaces the non-functional address form */}
+            <div className="mt-8 rounded-lg border border-emerald-200 bg-emerald-50 p-5">
+              <p className="text-sm font-bold text-emerald-900">Available in the metro area and surrounding zones</p>
+              <p className="mt-1 text-sm leading-6 text-emerald-800">
+                Contact us with your address and we&apos;ll confirm availability and schedule a free consultation.
+              </p>
+              <a
+                href="#quote"
+                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-all duration-200 hover:bg-emerald-700 hover:shadow-md"
+              >
+                Request Availability Check
+              </a>
+            </div>
 
             <div className="mt-7 space-y-3">
               {contactItems.map((item) => {
                 const Icon = item.icon;
-                return (
-                  <div key={item.label} className="flex items-center gap-3 text-sm font-semibold text-slate-700">
+                const content = (
+                  <div className="flex items-center gap-3 text-sm font-semibold text-slate-700">
                     <span className="grid h-9 w-9 place-items-center rounded-lg bg-slate-100 text-slate-700">
                       <Icon className="h-4 w-4" aria-hidden="true" />
                     </span>
                     {item.label}
                   </div>
+                );
+                return item.href ? (
+                  <a key={item.label} href={item.href} className="block transition-opacity hover:opacity-75">
+                    {content}
+                  </a>
+                ) : (
+                  <div key={item.label}>{content}</div>
                 );
               })}
             </div>

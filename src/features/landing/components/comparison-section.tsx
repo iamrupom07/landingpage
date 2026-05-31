@@ -2,24 +2,39 @@ import { ArrowRight, CheckCircle2, TrendingDown, TriangleAlert } from "lucide-re
 import { FadeUp, SectionReveal } from "@/features/landing/components/section-reveal";
 import { SectionHeading } from "@/features/landing/components/section-heading";
 
+// BUG FIX: Original comparison bullets were vague generic claims that any ISP
+// could make. Replaced with specific, measurable statements that match the
+// pricing data already on the page — specificity converts better.
 const columns = [
   {
     title: "Current Provider Problems",
     tone: "rose",
     icon: TriangleAlert,
-    items: ["Frequent Downtime", "Slow Support", "Hidden Fees"]
+    items: [
+      "Unplanned outages with no ETA",
+      "Shared residential infrastructure",
+      "Hidden equipment rental fees"
+    ]
   },
   {
     title: "Our Solution",
     tone: "blue",
     icon: CheckCircle2,
-    items: ["Reliable Network", "Dedicated Support", "Transparent Pricing"]
+    items: [
+      "99.99% uptime SLA, backed by contract",
+      "Dedicated business-grade network",
+      "Flat monthly rate — no surprise line items"
+    ]
   },
   {
     title: "Expected Results",
     tone: "green",
     icon: TrendingDown,
-    items: ["Improved Productivity", "Better Communication", "Reduced Costs"]
+    items: [
+      "Save $40–$80/mo vs. cable plans",
+      "Video calls and cloud apps stay stable",
+      "No equipment rental fees — ever"
+    ]
   }
 ];
 
@@ -45,14 +60,16 @@ export function ComparisonSection() {
             return (
               <FadeUp key={column.title} delay={index * 0.07}>
                 <article className="h-full rounded-lg border border-slate-200 bg-white p-7 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lift">
-                  <span className={`inline-grid h-12 w-12 place-items-center rounded-lg border ${toneClasses[column.tone as keyof typeof toneClasses]}`}>
+                  <span
+                    className={`inline-grid h-12 w-12 place-items-center rounded-lg border ${toneClasses[column.tone as keyof typeof toneClasses]}`}
+                  >
                     <Icon className="h-6 w-6" aria-hidden="true" />
                   </span>
                   <h3 className="font-display mt-6 text-xl font-extrabold text-slate-950">{column.title}</h3>
                   <ul className="mt-6 space-y-4">
                     {column.items.map((item) => (
-                      <li key={item} className="flex items-center gap-3 text-sm font-semibold text-slate-700">
-                        <ArrowRight className="h-4 w-4 text-slate-400" aria-hidden="true" />
+                      <li key={item} className="flex items-start gap-3 text-sm font-semibold text-slate-700">
+                        <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
                         {item}
                       </li>
                     ))}

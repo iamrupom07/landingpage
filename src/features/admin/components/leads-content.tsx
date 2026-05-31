@@ -51,7 +51,11 @@ export default function LeadsContent() {
   const [plan, setPlan] = useState("all");
   const [page, setPage] = useState(1);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [allLeads, setAllLeads] = useState<Lead[]>([]);
+  // BUG FIX: removed `allLeads` state — the original code fired two API calls
+  // on every pagination click (10 leads for display + 1 000 leads for CSV export).
+  // The 1 000-row fetch has been moved to an on-demand handleExport() handler
+  // that only runs when the user actually clicks "Export CSV".
+  const [exporting, setExporting] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
@@ -67,13 +71,10 @@ export default function LeadsContent() {
     setLoading(true);
 
     try {
-      const [result, all] = await Promise.all([
-        getLeadsAction({ page, pageSize: PAGE_SIZE, search: debouncedSearch, status, plan }),
-        getLeadsAction({ page: 1, pageSize: 1000, search: debouncedSearch, status, plan }),
-      ]);
-
+      // BUG FIX: single request — removed the second 1 000-row fetch that ran
+      // on every page/filter change solely to pre-populate the CSV export buffer.
+      const result = await getLeadsAction({ page, pageSize: PAGE_SIZE, search: debouncedSearch, status, plan });
       setData(result);
-      setAllLeads(all.leads);
     } finally {
       setLoading(false);
     }
@@ -121,6 +122,18 @@ export default function LeadsContent() {
     router.push("/admin/leads");
   }
 
+  // BUG FIX: export is now on-demand — only fetches the large dataset when
+  // the user explicitly clicks "Export CSV", not on every page navigation.
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const all = await getLeadsAction({ page: 1, pageSize: 5000, search: debouncedSearch, status, plan });
+      exportLeadsCSV(all.leads);
+    } finally {
+      setExporting(false);
+    }
+  }
+
   function clearFilters() {
     setStatus("all");
     setPlan("all");
@@ -140,8 +153,8 @@ export default function LeadsContent() {
           </p>
         </div>
         <div className="lead-actions">
-          <button onClick={() => exportLeadsCSV(allLeads)} disabled={!allLeads.length} className="expbtn">
-            <Download className="h-4 w-4" /> Export CSV
+          <button onClick={handleExport} disabled={exporting || !data?.total} className="expbtn">
+            <Download className="h-4 w-4" /> {exporting ? "Exporting…" : "Export CSV"}
           </button>
           <button onClick={fetchLeads} className="refbtn" title="Refresh">
             <RefreshCw className={`h-4 w-4${loading ? " spin" : ""}`} />

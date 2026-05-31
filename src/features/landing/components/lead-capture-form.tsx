@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowRight, CheckCircle2, LoaderCircle, LockKeyhole } from "lucide-react";
+import { ArrowRight, LoaderCircle, LockKeyhole } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { type LeadQuotePayload, leadQuoteSchema, submitLeadQuote } from "@/lib/lead";
 import { Button } from "@/components/ui/button";
@@ -29,10 +29,7 @@ type FieldErrorProps = {
 };
 
 function FieldError({ message, id }: FieldErrorProps) {
-  if (!message) {
-    return null;
-  }
-
+  if (!message) return null;
   return (
     <p id={id} className="mt-2 text-sm font-medium text-red-600">
       {message}
@@ -40,13 +37,18 @@ function FieldError({ message, id }: FieldErrorProps) {
   );
 }
 
+// BUG FIX: Removed dead `successId` state — the component unmounted before
+// React could re-render the success block because router.push() was called
+// immediately after setSuccessId(). Now we pass the referenceId as a query
+// param to the thank-you page so it can display it there instead.
 export function LeadCaptureForm() {
   const router = useRouter();
-  const [successId, setSuccessId] = useState<string | null>(null);
+  const [serverError, setServerError] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
     reset,
+    setError,
     formState: { errors, isSubmitting }
   } = useForm<LeadQuotePayload>({
     resolver: zodResolver(leadQuoteSchema),
@@ -54,13 +56,24 @@ export function LeadCaptureForm() {
   });
 
   async function onSubmit(values: LeadQuotePayload) {
-    setSuccessId(null);
+    setServerError(null);
     const result = await submitLeadQuote(values);
 
     if (result.ok) {
-      setSuccessId(result.referenceId);
       reset(defaultValues);
-      router.push("/thank-you");
+      // Pass referenceId as query param so thank-you page can display it
+      router.push(`/thank-you?ref=${result.referenceId}`);
+    } else {
+      // Surface field-level errors from server validation
+      if (result.fieldErrors) {
+        for (const [field, messages] of Object.entries(result.fieldErrors)) {
+          setError(field as keyof LeadQuotePayload, {
+            type: "server",
+            message: messages[0]
+          });
+        }
+      }
+      setServerError(result.error);
     }
   }
 
@@ -80,17 +93,10 @@ export function LeadCaptureForm() {
           <LockKeyhole className="h-5 w-5" aria-hidden="true" />
         </span>
       </div>
-      {successId ? (
-        <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-900" role="status">
-          <div className="flex gap-3">
-            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" aria-hidden="true" />
-            <div>
-              <p className="font-bold">Quote request received.</p>
-              <p className="mt-1 text-sm leading-6">
-                Reference {successId}. A Kinetic Business specialist will follow up with a tailored recommendation.
-              </p>
-            </div>
-          </div>
+
+      {serverError ? (
+        <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">
+          {serverError}
         </div>
       ) : null}
 
@@ -170,8 +176,17 @@ export function LeadCaptureForm() {
           <FieldError id="currentProvider-error" message={errors.currentProvider?.message} />
         </div>
         <div>
-          <Label htmlFor="employees">Number of Employees <span className="font-medium text-slate-400">(Optional)</span></Label>
-          <Input id="employees" className="mt-2" inputMode="numeric" placeholder="25" {...register("employees")} />
+          <Label htmlFor="employees">
+            Number of Employees{" "}
+            <span className="font-medium text-slate-400">(Optional)</span>
+          </Label>
+          <Input
+            id="employees"
+            className="mt-2"
+            inputMode="numeric"
+            placeholder="25"
+            {...register("employees")}
+          />
         </div>
         <div className="sm:col-span-2">
           <Label htmlFor="comments">Comments / Requirements</Label>
@@ -187,7 +202,12 @@ export function LeadCaptureForm() {
         </div>
       </div>
 
-      <Button type="submit" size="lg" className={cn("mt-6 w-full", isSubmitting && "cursor-wait")} disabled={isSubmitting}>
+      <Button
+        type="submit"
+        size="lg"
+        className={cn("mt-6 w-full", isSubmitting && "cursor-wait")}
+        disabled={isSubmitting}
+      >
         {isSubmitting ? (
           <>
             <LoaderCircle className="animate-spin" aria-hidden="true" />

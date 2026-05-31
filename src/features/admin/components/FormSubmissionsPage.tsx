@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import type { Lead, LeadStatus, SendEmailPayload } from "@/types/admin";
 import {
   deleteLeadAction,
@@ -8,33 +8,20 @@ import {
   sendEmailToLeadAction,
   updateLeadStatusAction,
 } from "@/features/admin/services/lead-actions";
+// BUG FIX: was copy-pasted locally — now imported from single source of truth
+import { STATUS_LABELS, STATUS_COLORS, PLAN_LABELS } from "@/lib/lead-constants";
 
-const STATUS_LABELS: Record<LeadStatus, string> = {
-  new:         "New",
-  contacted:   "Contacted",
-  qualified:   "Qualified",
-  closed_won:  "Won",
-  closed_lost: "Lost",
-};
+const PAGE_SIZE = 20;
 
-const STATUS_COLORS: Record<LeadStatus, string> = {
-  new:         "bg-blue-100 text-blue-800",
-  contacted:   "bg-yellow-100 text-yellow-800",
-  qualified:   "bg-purple-100 text-purple-800",
-  closed_won:  "bg-green-100 text-green-800",
-  closed_lost: "bg-red-100 text-red-800",
-};
-
-const PLAN_LABELS: Record<string, string> = {
-  starter:      "Starter (300 Mbps)",
-  professional: "Professional (1 Gig)",
-  enterprise:   "Enterprise (2 Gig)",
-};
-
+// BUG FIX: The original loaded 100 rows on mount and filtered entirely in the
+// browser with leads.filter() on every keystroke — O(n) client-side scan.
+// Replaced with debounced server-side filtering (same pattern as LeadsContent)
+// so search/status changes issue a single targeted API call with pagination.
 export default function FormSubmissionsPage() {
-  const [leads, setLeads]               = useState<Lead[]>([]);
-  const [loaded, setLoaded]             = useState(false);
+  const [data, setData]                 = useState<{ leads: Lead[]; total: number; totalPages: number } | null>(null);
+  const [page, setPage]                 = useState(1);
   const [search, setSearch]             = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<LeadStatus | "all">("all");
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [emailForm, setEmailForm]       = useState<SendEmailPayload>({ subject: "", body: "" });
@@ -43,31 +30,36 @@ export default function FormSubmissionsPage() {
   const [isPending, startTransition]    = useTransition();
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
-  // BUG FIX: was calling startTransition inside the render body (if !loaded),
-  // which causes issues in React Strict Mode and on re-renders. Moved to useEffect.
+  // Debounce search input
   useEffect(() => {
-    startTransition(async () => {
-      const res = await getLeadsAction({ source: "form", pageSize: 100 });
-      setLeads(res.leads);
-      setLoaded(true);
-    });
-  }, []);
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
 
-  const filtered = leads.filter((l) => {
-    const matchStatus = statusFilter === "all" || l.status === statusFilter;
-    const q = search.toLowerCase();
-    const matchSearch =
-      !q ||
-      l.businessName.toLowerCase().includes(q) ||
-      l.contactName.toLowerCase().includes(q) ||
-      l.email.toLowerCase().includes(q);
-    return matchStatus && matchSearch;
-  });
+  const fetchLeads = useCallback(() => {
+    startTransition(async () => {
+      const res = await getLeadsAction({
+        source: "form",
+        page,
+        pageSize: PAGE_SIZE,
+        search: debouncedSearch,
+        status: statusFilter === "all" ? undefined : statusFilter,
+      });
+      setData(res);
+    });
+  }, [page, debouncedSearch, statusFilter]);
+
+  useEffect(() => {
+    fetchLeads();
+  }, [fetchLeads]);
 
   async function handleStatusChange(id: string, status: LeadStatus) {
     startTransition(async () => {
       const updated = await updateLeadStatusAction(id, status);
-      setLeads((prev) => prev.map((l) => (l.id === id ? updated : l)));
+      setData((prev) => prev ? { ...prev, leads: prev.leads.map((l) => (l.id === id ? updated : l)) } : prev);
       if (selectedLead?.id === id) setSelectedLead(updated);
     });
   }
@@ -75,7 +67,7 @@ export default function FormSubmissionsPage() {
   async function handleDelete(id: string) {
     startTransition(async () => {
       await deleteLeadAction(id);
-      setLeads((prev) => prev.filter((l) => l.id !== id));
+      setData((prev) => prev ? { ...prev, leads: prev.leads.filter((l) => l.id !== id), total: Math.max(0, prev.total - 1) } : prev);
       if (selectedLead?.id === id) setSelectedLead(null);
       setDeleteConfirm(null);
     });
@@ -101,6 +93,9 @@ export default function FormSubmissionsPage() {
     return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   }
 
+  const leads = data?.leads ?? [];
+  const loading = !data && isPending;
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -109,7 +104,7 @@ export default function FormSubmissionsPage() {
         <p className="text-sm text-gray-500 mt-0.5">Leads submitted through your public landing page</p>
       </div>
 
-      {/* Filters */}
+      {/* Filters — server-side now */}
       <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-3">
         <div className="relative flex-1 max-w-xs">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="8"/><path strokeLinecap="round" d="M21 21l-4.35-4.35"/></svg>
@@ -123,7 +118,7 @@ export default function FormSubmissionsPage() {
         </div>
         <select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as LeadStatus | "all")}
+          onChange={(e) => { setStatusFilter(e.target.value as LeadStatus | "all"); setPage(1); }}
           className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="all">All Statuses</option>
@@ -131,65 +126,94 @@ export default function FormSubmissionsPage() {
             <option key={s} value={s}>{STATUS_LABELS[s]}</option>
           ))}
         </select>
-        <span className="ml-auto text-xs text-gray-400">{filtered.length} submission{filtered.length !== 1 ? "s" : ""}</span>
+        {isPending && <span className="ml-auto text-xs text-gray-400 animate-pulse">Loading…</span>}
+        {!isPending && <span className="ml-auto text-xs text-gray-400">{data?.total ?? 0} submission{data?.total !== 1 ? "s" : ""}</span>}
       </div>
 
       <div className="p-6 flex gap-6" style={{ minHeight: "calc(100vh - 133px)" }}>
         {/* Table */}
         <div className="flex-1 min-w-0">
-          {!loaded ? (
+          {loading ? (
             <div className="flex items-center justify-center h-48 text-gray-400 text-sm">Loading submissions…</div>
-          ) : filtered.length === 0 ? (
+          ) : leads.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 text-gray-400 gap-3">
               <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
               <p className="text-sm">{search || statusFilter !== "all" ? "No submissions match your filters." : "No form submissions yet."}</p>
             </div>
           ) : (
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className="text-left font-medium text-gray-500 text-xs uppercase tracking-wide px-5 py-3">Contact</th>
-                    <th className="text-left font-medium text-gray-500 text-xs uppercase tracking-wide px-4 py-3">Business</th>
-                    <th className="text-left font-medium text-gray-500 text-xs uppercase tracking-wide px-4 py-3">Plan</th>
-                    <th className="text-left font-medium text-gray-500 text-xs uppercase tracking-wide px-4 py-3">Status</th>
-                    <th className="text-left font-medium text-gray-500 text-xs uppercase tracking-wide px-4 py-3">Submitted</th>
-                    <th className="px-4 py-3"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {filtered.map((lead) => (
-                    <tr
-                      key={lead.id}
-                      onClick={() => { setSelectedLead(lead); setEmailSuccess(false); setEmailError(null); }}
-                      className={`cursor-pointer hover:bg-gray-50 transition-colors ${selectedLead?.id === lead.id ? "bg-blue-50" : ""}`}
-                    >
-                      <td className="px-5 py-3">
-                        <p className="font-medium text-gray-900">{lead.contactName}</p>
-                        <p className="text-xs text-gray-500">{lead.email}</p>
-                      </td>
-                      <td className="px-4 py-3 text-gray-700">{lead.businessName}</td>
-                      <td className="px-4 py-3 text-gray-500">{lead.plan ? PLAN_LABELS[lead.plan] ?? lead.plan : "—"}</td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_COLORS[lead.status]}`}>
-                          {STATUS_LABELS[lead.status]}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-500 text-xs">{formatDate(lead.createdAt)}</td>
-                      <td className="px-4 py-3">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setDeleteConfirm(lead.id); }}
-                          className="text-gray-400 hover:text-red-500 transition-colors p-1"
-                          title="Delete"
-                        >
-                          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                        </button>
-                      </td>
+            <>
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-200">
+                      <th className="text-left font-medium text-gray-500 text-xs uppercase tracking-wide px-5 py-3">Contact</th>
+                      <th className="text-left font-medium text-gray-500 text-xs uppercase tracking-wide px-4 py-3">Business</th>
+                      <th className="text-left font-medium text-gray-500 text-xs uppercase tracking-wide px-4 py-3">Plan</th>
+                      <th className="text-left font-medium text-gray-500 text-xs uppercase tracking-wide px-4 py-3">Status</th>
+                      <th className="text-left font-medium text-gray-500 text-xs uppercase tracking-wide px-4 py-3">Submitted</th>
+                      <th className="px-4 py-3"></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {leads.map((lead) => (
+                      <tr
+                        key={lead.id}
+                        onClick={() => { setSelectedLead(lead); setEmailSuccess(false); setEmailError(null); }}
+                        className={`cursor-pointer hover:bg-gray-50 transition-colors ${selectedLead?.id === lead.id ? "bg-blue-50" : ""}`}
+                      >
+                        <td className="px-5 py-3">
+                          <p className="font-medium text-gray-900">{lead.contactName}</p>
+                          <p className="text-xs text-gray-500">{lead.email}</p>
+                        </td>
+                        <td className="px-4 py-3 text-gray-700">{lead.businessName}</td>
+                        <td className="px-4 py-3 text-gray-500">{lead.plan ? PLAN_LABELS[lead.plan] ?? lead.plan : "—"}</td>
+                        <td className="px-4 py-3">
+                          <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${STATUS_COLORS[lead.status as keyof typeof STATUS_COLORS]}`}>
+                            {STATUS_LABELS[lead.status as keyof typeof STATUS_LABELS]}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-gray-500 text-xs">{formatDate(lead.createdAt)}</td>
+                        <td className="px-4 py-3">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setDeleteConfirm(lead.id); }}
+                            className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                            title="Delete"
+                          >
+                            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              {data && data.totalPages > 1 && (
+                <div className="mt-4 flex items-center justify-between text-sm">
+                  <p className="text-gray-500">
+                    Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, data.total)} of {data.total}
+                  </p>
+                  <div className="flex gap-1">
+                    <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1 || isPending} className="px-3 py-1.5 border border-gray-300 rounded-lg disabled:opacity-40 hover:bg-gray-50">←</button>
+                    {Array.from({ length: data.totalPages }, (_, i) => i + 1)
+                      .filter((p) => p === 1 || p === data.totalPages || Math.abs(p - page) <= 1)
+                      .map((p, idx, arr) => (
+                        <span key={p} className="contents">
+                          {idx > 0 && arr[idx - 1] !== p - 1 && <span className="px-2 py-1.5 text-gray-400">…</span>}
+                          <button
+                            onClick={() => setPage(p)}
+                            className={`px-3 py-1.5 border rounded-lg ${p === page ? "border-blue-500 bg-blue-50 text-blue-700 font-medium" : "border-gray-300 hover:bg-gray-50"}`}
+                          >
+                            {p}
+                          </button>
+                        </span>
+                      ))}
+                    <button onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))} disabled={page === data.totalPages || isPending} className="px-3 py-1.5 border border-gray-300 rounded-lg disabled:opacity-40 hover:bg-gray-50">→</button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
 

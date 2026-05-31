@@ -10,23 +10,8 @@ import {
   updateLeadStatusAction,
 } from "@/features/admin/services/lead-actions";
 
-// ─── Constants ─────────────────────────────────────────────────────────────
-
-const STATUS_LABELS: Record<LeadStatus, string> = {
-  new:         "New",
-  contacted:   "Contacted",
-  qualified:   "Qualified",
-  closed_won:  "Won",
-  closed_lost: "Lost",
-};
-
-const STATUS_COLORS: Record<LeadStatus, string> = {
-  new:         "bg-blue-100 text-blue-800",
-  contacted:   "bg-yellow-100 text-yellow-800",
-  qualified:   "bg-purple-100 text-purple-800",
-  closed_won:  "bg-green-100 text-green-800",
-  closed_lost: "bg-red-100 text-red-800",
-};
+// BUG FIX: was copy-pasted locally — now imported from single source of truth
+import { STATUS_LABELS, STATUS_COLORS } from "@/lib/lead-constants";
 
 const EMPTY_FORM: CreateManualLeadPayload = {
   businessName:    "",
