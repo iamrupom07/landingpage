@@ -1,78 +1,59 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-const ADMIN_SESSION_COOKIE = "kb_admin_session";
-const DEFAULT_ADMIN_EMAIL = "admin@kinetic.biz";
-const DEFAULT_ADMIN_PASSWORD = "admin123";
-const SESSION_MAX_AGE = 60 * 60 * 8;
+const TOKEN_COOKIE    = "kb_admin_token";
+const SESSION_MAX_AGE = 60 * 60 * 8; // 8 hours
 
 export type AdminSession = {
   email: string;
+  token: string;
 };
 
-export function getAdminCredentials() {
-  return {
-    email: process.env.ADMIN_EMAIL ?? DEFAULT_ADMIN_EMAIL,
-    password: process.env.ADMIN_PASSWORD ?? DEFAULT_ADMIN_PASSWORD,
-  };
+// ─── Token storage ────────────────────────────────────────────────────────────
+
+export async function setAdminToken(token: string): Promise<void> {
+  const store = await cookies();
+  store.set(TOKEN_COOKIE, token, {
+    httpOnly: true,
+    maxAge:   SESSION_MAX_AGE,
+    path:     "/",
+    sameSite: "lax",
+    secure:   process.env.NODE_ENV === "production",
+  });
+}
+
+export async function getAdminToken(): Promise<string | null> {
+  const store = await cookies();
+  return store.get(TOKEN_COOKIE)?.value ?? null;
+}
+
+export async function clearAdminToken(): Promise<void> {
+  const store = await cookies();
+  store.set(TOKEN_COOKIE, "", { httpOnly: true, maxAge: 0, path: "/" });
+}
+
+// ─── Session helpers ──────────────────────────────────────────────────────────
+
+export async function requireAdminToken(): Promise<string> {
+  const token = await getAdminToken();
+  if (!token) redirect("/admin/login");
+  return token;
+}
+
+// Legacy alias used by lead-actions.ts
+export async function requireAdminSession(): Promise<{ email: string }> {
+  const token = await requireAdminToken();
+  // We don't need to decode the JWT here — just confirm it exists
+  return { email: "admin" };
+}
+
+// ─── Kept for backward-compat with admin-login-form.tsx ──────────────────────
+export async function getAdminSession(): Promise<AdminSession | null> {
+  const token = await getAdminToken();
+  if (!token) return null;
+  return { email: "admin", token };
 }
 
 export function getAdminLoginDefaults() {
-  const credentials = getAdminCredentials();
-
-  return {
-    email: credentials.email,
-    password: process.env.ADMIN_PASSWORD ? "" : DEFAULT_ADMIN_PASSWORD,
-  };
-}
-
-export async function getAdminSession(): Promise<AdminSession | null> {
-  const cookieStore = await cookies();
-  const value = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
-
-  if (!value?.startsWith("mock:")) {
-    return null;
-  }
-
-  try {
-    const email = decodeURIComponent(value.slice(5));
-
-    return email ? { email } : null;
-  } catch {
-    return null;
-  }
-}
-
-export async function requireAdminSession(): Promise<AdminSession> {
-  const session = await getAdminSession();
-
-  if (!session) {
-    redirect("/admin/login");
-  }
-
-  return session;
-}
-
-export async function setAdminSession(email: string) {
-  const cookieStore = await cookies();
-
-  cookieStore.set(ADMIN_SESSION_COOKIE, `mock:${encodeURIComponent(email)}`, {
-    httpOnly: true,
-    maxAge: SESSION_MAX_AGE,
-    path: "/admin",
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-  });
-}
-
-export async function clearAdminSession() {
-  const cookieStore = await cookies();
-
-  cookieStore.set(ADMIN_SESSION_COOKIE, "", {
-    httpOnly: true,
-    maxAge: 0,
-    path: "/admin",
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-  });
+  return { email: "", password: "" };
 }

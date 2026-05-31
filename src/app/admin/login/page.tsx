@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getAdminLoginDefaults, getAdminSession } from "@/features/admin/auth/session";
+import { getAdminSession } from "@/features/admin/auth/session";
 import { AdminLoginForm } from "@/features/admin/components/admin-login-form";
 
 export default async function AdminLoginPage() {
@@ -9,12 +9,6 @@ export default async function AdminLoginPage() {
     redirect("/admin/dashboard");
   }
 
-  const defaults = getAdminLoginDefaults();
-
-  return (
-    <AdminLoginForm
-      defaultEmail={defaults.email}
-      defaultPassword={defaults.password}
-    />
-  );
+  // No defaults — users must type their credentials
+  return <AdminLoginForm defaultEmail="" defaultPassword="" />;
 }

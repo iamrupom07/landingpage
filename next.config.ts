@@ -2,12 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  eslint: {
-    // Suppress the custom-font-in-head warning for runtime loading.
-    ignoreDuringBuilds: false,
-  },
-  experimental: {
-    // Turbopack is stable in Next.js 15+
+  // Allow server actions to call the backend API
+  experimental: {},
+  // Expose the API URL to server components / actions
+  env: {
+    API_URL: process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000",
   },
 };
 

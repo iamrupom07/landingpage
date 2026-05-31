@@ -1,30 +1,48 @@
 "use server";
 
-import type { LeadStatus } from "@/types/admin";
-import { requireAdminSession } from "../auth/session";
-import { deleteLead, getAnalytics, getLead, getLeads, updateLeadStatus } from "./leads";
+import type { CreateManualLeadPayload, LeadStatus, SendEmailPayload } from "@/types/admin";
+import { requireAdminToken } from "../auth/session";
+import {
+  createManualLead,
+  deleteLead,
+  getAnalytics,
+  getLead,
+  getLeads,
+  sendEmailToLead,
+  updateLeadStatus,
+} from "./leads";
 
 export async function getLeadsAction(params: Parameters<typeof getLeads>[0]) {
-  await requireAdminSession();
-  return getLeads(params);
+  const token = await requireAdminToken();
+  return getLeads(params, token);
 }
 
 export async function getLeadAction(id: string) {
-  await requireAdminSession();
-  return getLead(id);
+  const token = await requireAdminToken();
+  return getLead(id, token);
 }
 
 export async function getAnalyticsAction() {
-  await requireAdminSession();
-  return getAnalytics();
+  const token = await requireAdminToken();
+  return getAnalytics(token);
 }
 
 export async function updateLeadStatusAction(id: string, status: LeadStatus) {
-  await requireAdminSession();
-  return updateLeadStatus(id, status);
+  const token = await requireAdminToken();
+  return updateLeadStatus(id, status, token);
+}
+
+export async function createManualLeadAction(payload: CreateManualLeadPayload) {
+  const token = await requireAdminToken();
+  return createManualLead(payload, token);
+}
+
+export async function sendEmailToLeadAction(id: string, payload: SendEmailPayload) {
+  const token = await requireAdminToken();
+  return sendEmailToLead(id, payload, token);
 }
 
 export async function deleteLeadAction(id: string) {
-  await requireAdminSession();
-  await deleteLead(id);
+  const token = await requireAdminToken();
+  await deleteLead(id, token);
 }

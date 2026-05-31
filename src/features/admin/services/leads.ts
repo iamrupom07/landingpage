@@ -1,96 +1,111 @@
-import type { AnalyticsSummary, Lead, LeadStatus, PaginatedLeads } from "@/types/admin";
-import { INITIAL_LEADS } from "../data/mock-leads";
-
-let leadsStore = [...INITIAL_LEADS];
+import type {
+  AnalyticsSummary,
+  CreateManualLeadPayload,
+  Lead,
+  LeadSource,
+  LeadStatus,
+  PaginatedLeads,
+  SendEmailPayload,
+} from "@/types/admin";
+import { apiFetch } from "@/lib/api";
 
 type GetLeadsParams = {
-  page?: number;
+  page?:     number;
   pageSize?: number;
-  search?: string;
-  status?: LeadStatus | "all";
-  plan?: Lead["plan"] | "all" | string;
+  search?:   string;
+  status?:   LeadStatus | "all";
+  plan?:     Lead["plan"] | "all" | string;
+  source?:   LeadSource | "all";
 };
 
-export async function getLeads(params: GetLeadsParams = {}): Promise<PaginatedLeads> {
-  const { page = 1, pageSize = 10, search = "", status = "all", plan = "all" } = params;
-  const query = search.trim().toLowerCase();
+type ApiLeadsResponse = {
+  success:    boolean;
+  leads:      Lead[];
+  total:      number;
+  page:       number;
+  pageSize:   number;
+  totalPages: number;
+};
 
-  const filtered = leadsStore
-    .filter((lead) => {
-      const matchSearch =
-        !query ||
-        lead.businessName.toLowerCase().includes(query) ||
-        lead.contactName.toLowerCase().includes(query) ||
-        lead.email.toLowerCase().includes(query) ||
-        lead.businessAddress.toLowerCase().includes(query);
-      const matchStatus = status === "all" || lead.status === status;
-      const matchPlan = plan === "all" || lead.plan === plan;
+type ApiAnalyticsResponse = {
+  success: boolean;
+  data:    AnalyticsSummary;
+};
 
-      return matchSearch && matchStatus && matchPlan;
-    })
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+// ─── Leads ────────────────────────────────────────────────────────────────────
 
-  const total = filtered.length;
-  const totalPages = Math.ceil(total / pageSize);
-  const start = (page - 1) * pageSize;
+export async function getLeads(
+  params: GetLeadsParams = {},
+  token?: string
+): Promise<PaginatedLeads> {
+  const { page = 1, pageSize = 10, search = "", status = "all", plan = "all", source = "all" } = params;
 
-  return {
-    leads: filtered.slice(start, start + pageSize),
-    total,
-    page,
-    pageSize,
-    totalPages,
-  };
-}
+  const query = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+  if (search)          query.set("search", search);
+  if (status !== "all") query.set("status", status);
+  if (plan   !== "all") query.set("plan",   plan);
+  if (source !== "all") query.set("source", source);
 
-export async function getLead(id: string): Promise<Lead> {
-  const lead = leadsStore.find((item) => item.id === id);
-
-  if (!lead) {
-    throw new Error("Lead not found");
-  }
-
-  return lead;
-}
-
-export async function updateLeadStatus(id: string, status: LeadStatus): Promise<Lead> {
-  const index = leadsStore.findIndex((lead) => lead.id === id);
-
-  if (index === -1) {
-    throw new Error("Lead not found");
-  }
-
-  leadsStore[index] = {
-    ...leadsStore[index],
-    status,
-    updatedAt: new Date().toISOString(),
-  };
-
-  return leadsStore[index];
-}
-
-export async function deleteLead(id: string): Promise<void> {
-  leadsStore = leadsStore.filter((lead) => lead.id !== id);
-}
-
-export async function getAnalytics(): Promise<AnalyticsSummary> {
-  const total = leadsStore.length;
-  const closedWon = leadsStore.filter((lead) => lead.status === "closed_won").length;
-  const sevenDaysAgo = Date.now() - 7 * 86400000;
+  const res = await apiFetch<ApiLeadsResponse>(`/api/leads?${query}`, { token });
 
   return {
-    total,
-    new: leadsStore.filter((lead) => lead.status === "new").length,
-    contacted: leadsStore.filter((lead) => lead.status === "contacted").length,
-    qualified: leadsStore.filter((lead) => lead.status === "qualified").length,
-    closed_won: closedWon,
-    closed_lost: leadsStore.filter((lead) => lead.status === "closed_lost").length,
-    byPlan: {
-      starter: leadsStore.filter((lead) => lead.plan === "starter").length,
-      professional: leadsStore.filter((lead) => lead.plan === "professional").length,
-      enterprise: leadsStore.filter((lead) => lead.plan === "enterprise").length,
-    },
-    recentCount: leadsStore.filter((lead) => new Date(lead.createdAt).getTime() > sevenDaysAgo).length,
-    conversionRate: total > 0 ? Math.round((closedWon / total) * 100) : 0,
+    leads:      res.leads,
+    total:      res.total,
+    page:       res.page,
+    pageSize:   res.pageSize,
+    totalPages: res.totalPages,
   };
+}
+
+export async function getLead(id: string, token?: string): Promise<Lead> {
+  const res = await apiFetch<{ success: boolean; data: Lead }>(`/api/leads/${id}`, { token });
+  return res.data;
+}
+
+export async function createManualLead(
+  payload: CreateManualLeadPayload,
+  token?: string
+): Promise<Lead> {
+  const res = await apiFetch<{ success: boolean; data: Lead }>("/api/leads/manual", {
+    method: "POST",
+    body:   JSON.stringify(payload),
+    token,
+  });
+  return res.data;
+}
+
+export async function updateLeadStatus(
+  id:     string,
+  status: LeadStatus,
+  token?: string
+): Promise<Lead> {
+  const res = await apiFetch<{ success: boolean; data: Lead }>(`/api/leads/${id}/status`, {
+    method: "PATCH",
+    body:   JSON.stringify({ status }),
+    token,
+  });
+  return res.data;
+}
+
+export async function sendEmailToLead(
+  id:      string,
+  payload: SendEmailPayload,
+  token?:  string
+): Promise<void> {
+  await apiFetch(`/api/leads/${id}/email`, {
+    method: "POST",
+    body:   JSON.stringify(payload),
+    token,
+  });
+}
+
+export async function deleteLead(id: string, token?: string): Promise<void> {
+  await apiFetch(`/api/leads/${id}`, { method: "DELETE", token });
+}
+
+// ─── Analytics ────────────────────────────────────────────────────────────────
+
+export async function getAnalytics(token?: string): Promise<AnalyticsSummary> {
+  const res = await apiFetch<ApiAnalyticsResponse>("/api/analytics/summary", { token });
+  return res.data;
 }
