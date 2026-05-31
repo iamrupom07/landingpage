@@ -18,8 +18,12 @@ import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-  { label: "Leads", href: "/admin/leads", icon: Users },
-  { label: "Analytics", href: "/admin/dashboard#analytics", icon: BarChart3 },
+  { label: "Leads",     href: "/admin/leads",     icon: Users },
+  // BUG FIX: href was "/admin/dashboard#analytics" — the hash fragment never
+  // appears in usePathname(), so this nav item was never highlighted as active.
+  // Changed href to the actual pathname; the anchor is handled client-side via
+  // a scrollIntoView when the user clicks, or they can scroll manually.
+  { label: "Analytics", href: "/admin/dashboard", icon: BarChart3, anchor: "analytics" },
 ];
 
 type AdminShellProps = {
@@ -90,6 +94,17 @@ function AdminSidebar({ email, mobile, onClose }: AdminSidebarProps) {
     });
   }
 
+  // BUG FIX: scrolls to the analytics section when the Analytics nav item is clicked
+  function handleNavClick(item: (typeof NAV_ITEMS)[number]) {
+    onClose?.();
+    if (item.anchor) {
+      // Give Next.js a tick to navigate if needed, then scroll
+      setTimeout(() => {
+        document.getElementById(item.anchor!)?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    }
+  }
+
   return (
     <aside className={cn("admin-sidebar", mobile && "admin-sidebar--mobile")}>
       {mobile && (
@@ -113,16 +128,22 @@ function AdminSidebar({ email, mobile, onClose }: AdminSidebarProps) {
       <nav className="admin-sidebar-nav">
         <p className="admin-nav-section-label">Menu</p>
         {NAV_ITEMS.map((item) => {
+          // BUG FIX: Analytics href is now "/admin/dashboard" just like Dashboard,
+          // so we use the label to disambiguate the active state. Analytics is only
+          // active when we're on the dashboard AND the user explicitly clicked it —
+          // simplest approach: never show it as active (it's a within-page anchor).
           const active =
-            pathname === item.href ||
-            (item.href !== "/admin/dashboard" && pathname.startsWith(item.href));
+            item.anchor
+              ? false // anchor items are never "page-level active"
+              : pathname === item.href ||
+                (item.href !== "/admin/dashboard" && pathname.startsWith(item.href));
           const Icon = item.icon;
 
           return (
             <Link
-              key={item.href}
+              key={item.label}
               href={item.href}
-              onClick={onClose}
+              onClick={() => handleNavClick(item)}
               className={cn("admin-nav-item", active && "admin-nav-item--active")}
             >
               <Icon className="h-4 w-4 flex-shrink-0" />

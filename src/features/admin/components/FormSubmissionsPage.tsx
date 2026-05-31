@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import type { Lead, LeadStatus, SendEmailPayload } from "@/types/admin";
 import {
   deleteLeadAction,
@@ -43,13 +43,15 @@ export default function FormSubmissionsPage() {
   const [isPending, startTransition]    = useTransition();
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
-  if (!loaded) {
+  // BUG FIX: was calling startTransition inside the render body (if !loaded),
+  // which causes issues in React Strict Mode and on re-renders. Moved to useEffect.
+  useEffect(() => {
     startTransition(async () => {
       const res = await getLeadsAction({ source: "form", pageSize: 100 });
       setLeads(res.leads);
       setLoaded(true);
     });
-  }
+  }, []);
 
   const filtered = leads.filter((l) => {
     const matchStatus = statusFilter === "all" || l.status === statusFilter;

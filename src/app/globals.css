@@ -552,8 +552,10 @@ p {
   border-radius: 50%;
 }
 
+/* BUG FIX: added margin: 0 auto so the dashboard is centred in the content area */
 .dash-shell {
   max-width: 1100px;
+  margin: 0 auto;
 }
 
 .dash-header {
@@ -590,11 +592,12 @@ p {
   font-weight: 700;
   text-decoration: none;
   white-space: nowrap;
-  transition: background 0.15s;
+  transition: background 0.15s, box-shadow 0.15s;
 }
 
 .dash-cta-btn:hover {
   background: #1e293b;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
 }
 
 .stat-grid {
@@ -610,12 +613,20 @@ p {
   }
 }
 
+/* BUG FIX: added hover + transition so stat cards feel interactive */
 .stat-card {
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   background: white;
   padding: 1.125rem;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+.stat-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
 }
 
 .stat-card-inner {
@@ -876,10 +887,27 @@ p {
   align-items: center;
   justify-content: center;
   border-radius: 8px;
-  background: #f1f5f9;
+  background: linear-gradient(135deg, #eff6ff, #f0fdf4);
   color: #475569;
   font-size: 0.875rem;
   font-weight: 700;
+}
+
+/* Empty state for recent leads list */
+.recent-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2.5rem 1rem;
+  color: #94a3b8;
+}
+
+.recent-empty-text {
+  font-size: 0.8125rem;
+  text-align: center;
+  max-width: 22rem;
 }
 
 .recent-row-info {

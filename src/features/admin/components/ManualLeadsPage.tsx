@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import type { CreateManualLeadPayload, Lead, LeadStatus, Plan, SendEmailPayload } from "@/types/admin";
+import { useEffect, useState, useTransition } from "react";
+import type { CreateManualLeadPayload, Lead, LeadStatus, SendEmailPayload } from "@/types/admin";
 import {
   createManualLeadAction,
   deleteLeadAction,
@@ -56,14 +56,16 @@ export default function ManualLeadsPage() {
   const [isPending, startTransition]    = useTransition();
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
-  // Load on first visit
-  if (!loaded) {
+  // BUG FIX: was calling startTransition inside the render body (if !loaded),
+  // which triggers in every render pass and causes React Strict Mode double-fires.
+  // Moved to useEffect so it runs once after mount.
+  useEffect(() => {
     startTransition(async () => {
       const res = await getLeadsAction({ source: "manual", pageSize: 100 });
       setLeads(res.leads);
       setLoaded(true);
     });
-  }
+  }, []);
 
   function handleFormChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
     const { name, value } = e.target;

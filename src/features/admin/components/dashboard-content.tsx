@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Clock,
   Flame,
+  Inbox,
   PhoneCall,
   Star,
   TrendingUp,
@@ -26,6 +27,7 @@ type StatCardProps = {
   icon: ElementType;
   accent: string;
   sub?: string;
+  trend?: string;
 };
 
 export function DashboardContent({ summary, recentLeads }: DashboardContentProps) {
@@ -90,24 +92,32 @@ export function DashboardContent({ summary, recentLeads }: DashboardContentProps
         </div>
 
         <div className="recent-list">
-          {recentLeads.map((lead) => (
-            <Link key={lead.id} href={`/admin/leads?id=${lead.id}`} className="recent-row">
-              <div className="recent-row-avatar">{lead.businessName[0]}</div>
-              <div className="recent-row-info">
-                <p className="recent-row-biz">{lead.businessName}</p>
-                <p className="recent-row-contact">
-                  {lead.contactName} &middot; {lead.email}
-                </p>
-              </div>
-              <div className="recent-row-meta">
-                <StatusBadge status={lead.status} />
-                <span className="recent-row-time">
-                  <Clock className="mr-1 inline h-3 w-3 opacity-50" />
-                  {formatRelative(lead.createdAt)}
-                </span>
-              </div>
-            </Link>
-          ))}
+          {/* BUG FIX: was rendering nothing when recentLeads was empty — now shows an empty state */}
+          {recentLeads.length === 0 ? (
+            <div className="recent-empty">
+              <Inbox className="h-8 w-8 text-slate-300" />
+              <p className="recent-empty-text">No leads yet. Your first submission will appear here.</p>
+            </div>
+          ) : (
+            recentLeads.map((lead) => (
+              <Link key={lead.id} href={`/admin/leads?id=${lead.id}`} className="recent-row">
+                <div className="recent-row-avatar">{lead.businessName[0]}</div>
+                <div className="recent-row-info">
+                  <p className="recent-row-biz">{lead.businessName}</p>
+                  <p className="recent-row-contact">
+                    {lead.contactName} &middot; {lead.email}
+                  </p>
+                </div>
+                <div className="recent-row-meta">
+                  <StatusBadge status={lead.status} />
+                  <span className="recent-row-time">
+                    <Clock className="mr-1 inline h-3 w-3 opacity-50" />
+                    {formatRelative(lead.createdAt)}
+                  </span>
+                </div>
+              </Link>
+            ))
+          )}
         </div>
       </div>
 
@@ -166,11 +176,11 @@ function StatCard({ label, value, icon: Icon, accent, sub }: StatCardProps) {
 
 function PipelineBar({ summary }: { summary: AnalyticsSummary }) {
   const stages = [
-    { label: "New", value: summary.new, color: "#3b82f6" },
-    { label: "Contacted", value: summary.contacted, color: "#f59e0b" },
-    { label: "Qualified", value: summary.qualified, color: "#8b5cf6" },
-    { label: "Won", value: summary.closed_won, color: "#22c55e" },
-    { label: "Lost", value: summary.closed_lost, color: "#ef4444" },
+    { label: "New",       value: summary.new,         color: "#3b82f6" },
+    { label: "Contacted", value: summary.contacted,    color: "#f59e0b" },
+    { label: "Qualified", value: summary.qualified,    color: "#8b5cf6" },
+    { label: "Won",       value: summary.closed_won,   color: "#22c55e" },
+    { label: "Lost",      value: summary.closed_lost,  color: "#ef4444" },
   ];
   const total = summary.total || 1;
 
@@ -209,9 +219,9 @@ function PipelineBar({ summary }: { summary: AnalyticsSummary }) {
 
 function PlanCard({ summary }: { summary: AnalyticsSummary }) {
   const plans = [
-    { label: "Starter", value: summary.byPlan.starter, color: "#64748b" },
-    { label: "Professional", value: summary.byPlan.professional, color: "#3b82f6" },
-    { label: "Enterprise", value: summary.byPlan.enterprise, color: "#8b5cf6" },
+    { label: "Starter",      value: summary.byPlan.starter,      color: "#64748b" },
+    { label: "Professional", value: summary.byPlan.professional,  color: "#3b82f6" },
+    { label: "Enterprise",   value: summary.byPlan.enterprise,    color: "#8b5cf6" },
   ];
   const total = summary.total || 1;
 
