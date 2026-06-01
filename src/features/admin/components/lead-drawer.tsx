@@ -3,49 +3,75 @@
 import { useEffect, useState } from "react";
 import {
   Building2,
+  CheckCircle2,
   Clock,
+  LoaderCircle,
   Mail,
   MapPin,
   MessageSquare,
   Phone,
+  Send,
   Trash2,
   Users,
   Wifi,
   X,
 } from "lucide-react";
 import type { Lead, LeadStatus } from "@/types/admin";
-import { deleteLeadAction, updateLeadStatusAction } from "../services/lead-actions";
+import {
+  useDeleteLeadMutation,
+  useSendEmailToLeadMutation,
+  useUpdateLeadStatusMutation,
+} from "../api/admin-leads-api";
 import { STATUS_CONFIG } from "./status-badge";
 
 const STATUSES: LeadStatus[] = ["new", "contacted", "qualified", "closed_won", "closed_lost"];
+const EMPTY_EMAIL_FORM = {
+  subject: "",
+  body: "",
+};
 
 interface LeadDrawerProps {
   lead: Lead;
+  initialEmailComposerOpen?: boolean;
   onClose: () => void;
   onUpdate: (updated: Lead) => void;
   onDelete: (id: string) => void;
 }
 
-export function LeadDrawer({ lead, onClose, onUpdate, onDelete }: LeadDrawerProps) {
+export function LeadDrawer({
+  lead,
+  initialEmailComposerOpen = false,
+  onClose,
+  onUpdate,
+  onDelete,
+}: LeadDrawerProps) {
   const [current, setCurrent] = useState<Lead>(lead);
-  const [updating, setUpdating] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showEmailComposer, setShowEmailComposer] = useState(false);
+  const [emailForm, setEmailForm] = useState(EMPTY_EMAIL_FORM);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [emailSent, setEmailSent] = useState(false);
+  const [updateLeadStatus, { isLoading: updating }] = useUpdateLeadStatusMutation();
+  const [deleteLead, { isLoading: deleting }] = useDeleteLeadMutation();
+  const [sendEmailToLead, { isLoading: sendingEmail }] = useSendEmailToLeadMutation();
 
   useEffect(() => {
     setCurrent(lead);
     setConfirmDelete(false);
-  }, [lead]);
+    setShowEmailComposer(initialEmailComposerOpen);
+    setEmailForm(EMPTY_EMAIL_FORM);
+    setEmailError(null);
+    setEmailSent(false);
+  }, [initialEmailComposerOpen, lead]);
 
   async function handleStatusChange(status: LeadStatus) {
     if (status === current.status) return;
-    setUpdating(true);
     try {
-      const updated = await updateLeadStatusAction(current.id, status);
+      const updated = await updateLeadStatus({ id: current.id, status }).unwrap();
       setCurrent(updated);
       onUpdate(updated);
-    } finally {
-      setUpdating(false);
+    } catch {
+      // Keep the current drawer state if the status update fails.
     }
   }
 
@@ -54,13 +80,36 @@ export function LeadDrawer({ lead, onClose, onUpdate, onDelete }: LeadDrawerProp
       setConfirmDelete(true);
       return;
     }
-    setDeleting(true);
     try {
-      await deleteLeadAction(current.id);
+      await deleteLead(current.id).unwrap();
       onDelete(current.id);
       onClose();
-    } finally {
-      setDeleting(false);
+    } catch {
+      // Keep the drawer open so the user can retry.
+    }
+  }
+
+  function handleEmailFormChange(
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) {
+    const { name, value } = event.target;
+    setEmailForm((form) => ({ ...form, [name]: value }));
+    setEmailError(null);
+    setEmailSent(false);
+  }
+
+  async function handleSendEmail(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setEmailError(null);
+    setEmailSent(false);
+
+    try {
+      await sendEmailToLead({ id: current.id, payload: emailForm }).unwrap();
+      setEmailForm(EMPTY_EMAIL_FORM);
+      setShowEmailComposer(false);
+      setEmailSent(true);
+    } catch (err) {
+      setEmailError(getMutationErrorMessage(err, "Unable to send email."));
     }
   }
 
@@ -150,6 +199,91 @@ export function LeadDrawer({ lead, onClose, onUpdate, onDelete }: LeadDrawerProp
           </div>
         </div>
 
+        <div className="drawer-section">
+          <p className="drawer-section-title">
+            <Mail className="h-3.5 w-3.5 inline mr-1" />
+            Email
+          </p>
+
+          {emailSent && (
+            <div className="drawer-email-success" role="status">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Email sent to {current.email}.
+            </div>
+          )}
+
+          {emailError && (
+            <div className="drawer-email-error" role="alert">
+              {emailError}
+            </div>
+          )}
+
+          {showEmailComposer ? (
+            <form onSubmit={handleSendEmail} className="drawer-email-form">
+              <label className="admin-field">
+                <span>Subject</span>
+                <input
+                  name="subject"
+                  value={emailForm.subject}
+                  onChange={handleEmailFormChange}
+                  className="admin-field-input"
+                  required
+                />
+              </label>
+              <label className="admin-field">
+                <span>Message</span>
+                <textarea
+                  name="body"
+                  value={emailForm.body}
+                  onChange={handleEmailFormChange}
+                  className="admin-field-input admin-field-textarea"
+                  rows={4}
+                  required
+                />
+              </label>
+              <div className="drawer-email-actions">
+                <button type="submit" className="createbtn" disabled={sendingEmail}>
+                  {sendingEmail ? (
+                    <>
+                      <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-3.5 w-3.5" />
+                      Send Email
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="drawer-cancel-btn"
+                  onClick={() => {
+                    setShowEmailComposer(false);
+                    setEmailError(null);
+                  }}
+                  disabled={sendingEmail}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          ) : (
+            <button
+              type="button"
+              className="drawer-email-btn"
+              onClick={() => {
+                setShowEmailComposer(true);
+                setEmailError(null);
+                setEmailSent(false);
+              }}
+            >
+              <Send className="h-3.5 w-3.5" />
+              Send Email
+            </button>
+          )}
+        </div>
+
         {/* Business info */}
         <div className="drawer-section">
           <p className="drawer-section-title">Business Info</p>
@@ -203,4 +337,19 @@ export function LeadDrawer({ lead, onClose, onUpdate, onDelete }: LeadDrawerProp
 
     </>
   );
+}
+
+function getMutationErrorMessage(err: unknown, fallback: string) {
+  if (err instanceof Error) return err.message;
+
+  if (typeof err === "object" && err && "data" in err) {
+    const data = (err as { data?: unknown }).data;
+
+    if (typeof data === "object" && data && "message" in data) {
+      const message = (data as { message?: unknown }).message;
+      if (typeof message === "string") return message;
+    }
+  }
+
+  return fallback;
 }

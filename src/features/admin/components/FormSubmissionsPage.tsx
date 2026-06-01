@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -10,9 +10,9 @@ import {
   SlidersHorizontal,
   X,
 } from "lucide-react";
-import type { Lead, LeadStatus, PaginatedLeads } from "@/types/admin";
+import type { Lead, LeadStatus } from "@/types/admin";
 import { formatDate, formatPlan } from "../utils/format";
-import { getLeadsAction } from "../services/lead-actions";
+import { useGetLeadsQuery } from "../api/admin-leads-api";
 import { LeadDrawer } from "./lead-drawer";
 import { StatusBadge } from "./status-badge";
 
@@ -28,14 +28,21 @@ const STATUS_OPTIONS: { value: LeadStatus | "all"; label: string }[] = [
 ];
 
 export default function FormSubmissionsPage() {
-  const [data, setData] = useState<PaginatedLeads | null>(null);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [status, setStatus] = useState<LeadStatus | "all">("all");
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
+
+  const { data, isFetching, isLoading, refetch } = useGetLeadsQuery({
+    source: "form",
+    page,
+    pageSize: PAGE_SIZE,
+    search: debouncedSearch,
+    status,
+  });
+  const loading = isLoading || isFetching;
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -46,30 +53,6 @@ export default function FormSubmissionsPage() {
     return () => window.clearTimeout(timer);
   }, [search]);
 
-  const fetchLeads = useCallback(
-    async (nextPage = page) => {
-      setLoading(true);
-
-      try {
-        const result = await getLeadsAction({
-          source: "form",
-          page: nextPage,
-          pageSize: PAGE_SIZE,
-          search: debouncedSearch,
-          status,
-        });
-        setData(result);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [debouncedSearch, page, status]
-  );
-
-  useEffect(() => {
-    fetchLeads();
-  }, [fetchLeads]);
-
   function clearFilters() {
     setSearch("");
     setDebouncedSearch("");
@@ -78,14 +61,6 @@ export default function FormSubmissionsPage() {
   }
 
   function handleLeadUpdate(updated: Lead) {
-    setData((prev) =>
-      prev
-        ? {
-            ...prev,
-            leads: prev.leads.map((lead) => (lead.id === updated.id ? updated : lead)),
-          }
-        : prev
-    );
     setSelectedLead(updated);
   }
 
@@ -97,7 +72,7 @@ export default function FormSubmissionsPage() {
       return;
     }
 
-    void fetchLeads();
+    void refetch();
   }
 
   const hasActiveFilters = status !== "all" || Boolean(debouncedSearch);
@@ -112,7 +87,7 @@ export default function FormSubmissionsPage() {
           </p>
         </div>
         <div className="lead-actions">
-          <button onClick={() => fetchLeads()} className="refbtn" title="Refresh">
+          <button onClick={() => void refetch()} className="refbtn" title="Refresh">
             <RefreshCw className={`h-4 w-4${loading ? " spin" : ""}`} />
           </button>
         </div>

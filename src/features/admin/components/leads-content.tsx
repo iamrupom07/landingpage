@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ChevronLeft,
@@ -13,10 +13,14 @@ import {
   SlidersHorizontal,
   X,
 } from "lucide-react";
-import type { CreateManualLeadPayload, Lead, LeadSource, LeadStatus, PaginatedLeads } from "@/types/admin";
+import type { CreateManualLeadPayload, Lead, LeadSource, LeadStatus } from "@/types/admin";
 import { downloadCSV } from "../utils/export-leads-csv";
 import { formatDate, formatPlan } from "../utils/format";
-import { createManualLeadAction, exportLeadsAction, getLeadsAction } from "../services/lead-actions";
+import {
+  useCreateManualLeadMutation,
+  useExportLeadsMutation,
+  useGetLeadsQuery,
+} from "../api/admin-leads-api";
 import { LeadDrawer } from "./lead-drawer";
 import { StatusBadge } from "./status-badge";
 
@@ -61,8 +65,6 @@ export default function LeadsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const [data, setData] = useState<PaginatedLeads | null>(null);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [status, setStatus] = useState<LeadStatus | "all">(() => getInitialStatus(searchParams.get("status")));
@@ -70,12 +72,22 @@ export default function LeadsContent() {
   const [source, setSource] = useState<LeadSource | "all">(() => getInitialSource(searchParams.get("source")));
   const [page, setPage] = useState(1);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [exporting, setExporting] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showCreateLead, setShowCreateLead] = useState(false);
   const [createForm, setCreateForm] = useState<CreateManualLeadPayload>(EMPTY_FORM);
   const [createError, setCreateError] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
+
+  const { data, isFetching, isLoading, refetch } = useGetLeadsQuery({
+    page,
+    pageSize: PAGE_SIZE,
+    search: debouncedSearch,
+    status,
+    plan,
+    source,
+  });
+  const [createManualLead, { isLoading: creating }] = useCreateManualLeadMutation();
+  const [exportLeads, { isLoading: exporting }] = useExportLeadsMutation();
+  const loading = isLoading || isFetching;
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -85,48 +97,6 @@ export default function LeadsContent() {
 
     return () => window.clearTimeout(timer);
   }, [search]);
-
-  const fetchLeads = useCallback(
-    async (
-      overrides: Partial<{
-        page: number;
-        search: string;
-        status: LeadStatus | "all";
-        plan: string;
-        source: LeadSource | "all";
-      }> = {}
-    ) => {
-      const next = {
-        page,
-        search: debouncedSearch,
-        status,
-        plan,
-        source,
-        ...overrides,
-      };
-
-      setLoading(true);
-
-      try {
-        const result = await getLeadsAction({
-          page: next.page,
-          pageSize: PAGE_SIZE,
-          search: next.search,
-          status: next.status,
-          plan: next.plan,
-          source: next.source,
-        });
-        setData(result);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [debouncedSearch, page, plan, source, status]
-  );
-
-  useEffect(() => {
-    fetchLeads();
-  }, [fetchLeads]);
 
   useEffect(() => {
     const id = searchParams.get("id");
@@ -141,14 +111,6 @@ export default function LeadsContent() {
   }, [data, searchParams]);
 
   function handleLeadUpdate(updated: Lead) {
-    setData((prev) =>
-      prev
-        ? {
-            ...prev,
-            leads: prev.leads.map((lead) => (lead.id === updated.id ? updated : lead)),
-          }
-        : prev
-    );
     setSelectedLead(updated);
   }
 
@@ -161,16 +123,15 @@ export default function LeadsContent() {
       return;
     }
 
-    void fetchLeads();
+    void refetch();
   }
 
   async function handleExport() {
-    setExporting(true);
     try {
-      const result = await exportLeadsAction({ search: debouncedSearch, status, plan, source });
+      const result = await exportLeads({ search: debouncedSearch, status, plan, source }).unwrap();
       downloadCSV(result.csv, result.filename);
-    } finally {
-      setExporting(false);
+    } catch {
+      // Export errors are surfaced by the backend/API layer; keep this control from crashing the page.
     }
   }
 
@@ -199,10 +160,9 @@ export default function LeadsContent() {
   async function handleCreateLead(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setCreateError(null);
-    setCreating(true);
 
     try {
-      const created = await createManualLeadAction(createForm);
+      const created = await createManualLead(createForm).unwrap();
       setCreateForm(EMPTY_FORM);
       setShowCreateLead(false);
       setStatus("all");
@@ -212,11 +172,8 @@ export default function LeadsContent() {
       setDebouncedSearch("");
       setPage(1);
       setSelectedLead(created);
-      await fetchLeads({ page: 1, search: "", status: "all", plan: "all", source: "all" });
     } catch (err) {
-      setCreateError(err instanceof Error ? err.message : "Unable to create lead.");
-    } finally {
-      setCreating(false);
+      setCreateError(getMutationErrorMessage(err, "Unable to create lead."));
     }
   }
 
@@ -239,7 +196,7 @@ export default function LeadsContent() {
           <button onClick={handleExport} disabled={exporting || !data?.total} className="expbtn">
             <Download className="h-4 w-4" /> {exporting ? "Exporting..." : "Export CSV"}
           </button>
-          <button onClick={() => fetchLeads()} className="refbtn" title="Refresh">
+          <button onClick={() => void refetch()} className="refbtn" title="Refresh">
             <RefreshCw className={`h-4 w-4${loading ? " spin" : ""}`} />
           </button>
         </div>
@@ -413,6 +370,7 @@ export default function LeadsContent() {
       {selectedLead && (
         <LeadDrawer
           lead={selectedLead}
+          initialEmailComposerOpen={searchParams.get("email") === "1"}
           onClose={() => {
             setSelectedLead(null);
             router.push("/admin/leads");
@@ -620,4 +578,19 @@ function getInitialSource(value: string | null): LeadSource | "all" {
 
 function formatSource(value: LeadSource) {
   return value === "manual" ? "Manual" : "Form";
+}
+
+function getMutationErrorMessage(err: unknown, fallback: string) {
+  if (err instanceof Error) return err.message;
+
+  if (typeof err === "object" && err && "data" in err) {
+    const data = (err as { data?: unknown }).data;
+
+    if (typeof data === "object" && data && "message" in data) {
+      const message = (data as { message?: unknown }).message;
+      if (typeof message === "string") return message;
+    }
+  }
+
+  return fallback;
 }

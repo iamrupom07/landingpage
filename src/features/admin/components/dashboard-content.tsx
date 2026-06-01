@@ -7,6 +7,7 @@ import {
   Clock,
   Flame,
   Inbox,
+  Mail,
   PhoneCall,
   Star,
   TrendingUp,
@@ -100,22 +101,33 @@ export function DashboardContent({ summary, recentLeads }: DashboardContentProps
             </div>
           ) : (
             recentLeads.map((lead) => (
-              <Link key={lead.id} href={`/admin/leads?id=${lead.id}`} className="recent-row">
-                <div className="recent-row-avatar">{lead.businessName[0]}</div>
-                <div className="recent-row-info">
-                  <p className="recent-row-biz">{lead.businessName}</p>
-                  <p className="recent-row-contact">
-                    {lead.contactName} &middot; {lead.email}
-                  </p>
-                </div>
-                <div className="recent-row-meta">
-                  <StatusBadge status={lead.status} />
-                  <span className="recent-row-time">
-                    <Clock className="mr-1 inline h-3 w-3 opacity-50" />
-                    {formatRelative(lead.createdAt)}
-                  </span>
-                </div>
-              </Link>
+              <div key={lead.id} className="recent-row">
+                <Link href={`/admin/leads?id=${lead.id}`} className="recent-row-main">
+                  <div className="recent-row-avatar">{lead.businessName[0]}</div>
+                  <div className="recent-row-info">
+                    <p className="recent-row-biz">{lead.businessName}</p>
+                    <p className="recent-row-contact">
+                      {lead.contactName} &middot; {lead.email}
+                    </p>
+                  </div>
+                  <div className="recent-row-meta">
+                    <StatusBadge status={lead.status} />
+                    <span className="recent-row-time">
+                      <Clock className="mr-1 inline h-3 w-3 opacity-50" />
+                      {formatRelative(lead.createdAt)}
+                    </span>
+                  </div>
+                </Link>
+                <Link
+                  href={`/admin/leads?id=${lead.id}&email=1`}
+                  className="recent-email-link"
+                  aria-label={`Send email to ${lead.contactName}`}
+                  title="Send email"
+                >
+                  <Mail className="h-4 w-4" />
+                  <span>Email</span>
+                </Link>
+              </div>
             ))
           )}
         </div>

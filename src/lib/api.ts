@@ -3,11 +3,16 @@
  * Works in both browser (client components) and Node.js (server actions).
  */
 
-const API_BASE =
-  (typeof window !== "undefined"
-    ? process.env.NEXT_PUBLIC_API_URL   // browser
-    : process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL  // server
-  ) ?? "http://localhost:5000";
+export function getApiBaseUrl() {
+  return (
+    (typeof window !== "undefined"
+      ? process.env.NEXT_PUBLIC_API_URL   // browser
+      : process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL  // server
+    ) ?? "http://localhost:5000"
+  );
+}
+
+const API_BASE = getApiBaseUrl();
 
 type FetchOptions = RequestInit & {
   token?: string;
