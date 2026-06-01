@@ -6,6 +6,7 @@ import { Eye, EyeOff, LockKeyhole, LoaderCircle, Wifi } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AdminContactStrip } from "@/features/admin/components/admin-contact-strip";
 import { apiFetch, ApiError } from "@/lib/api";
 
 // ─── Inner form (needs useSearchParams, so wrapped in Suspense below) ─────────
@@ -47,6 +48,7 @@ function ResetPasswordForm() {
         >
           Back to login
         </Button>
+        <AdminContactStrip />
       </div>
     );
   }
@@ -109,6 +111,7 @@ function ResetPasswordForm() {
         >
           Go to login
         </Button>
+        <AdminContactStrip />
       </div>
     );
   }
@@ -199,6 +202,7 @@ function ResetPasswordForm() {
           )}
         </Button>
       </form>
+      <AdminContactStrip />
     </div>
   );
 }

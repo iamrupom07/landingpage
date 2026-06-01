@@ -7,6 +7,7 @@ import { loginAdminAction } from "../auth/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AdminContactStrip } from "@/features/admin/components/admin-contact-strip";
 
 type AdminLoginFormProps = {
   defaultEmail: string;
@@ -125,6 +126,7 @@ export function AdminLoginForm({ defaultEmail, defaultPassword }: AdminLoginForm
           </Button>
         </form>
 
+        <AdminContactStrip />
       </div>
     </div>
   );

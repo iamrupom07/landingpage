@@ -1,11 +1,12 @@
 import { Building2, Mail, MapPin, Phone } from "lucide-react";
 import { FadeUp, SectionReveal } from "@/features/landing/components/section-reveal";
 import { SectionHeading } from "@/features/landing/components/section-heading";
+import { publicContact } from "@/lib/public-contact";
 
 const contactItems = [
-  { label: "(555) 218-9044", icon: Phone, href: "tel:+15552189044" },
-  { label: "business@kinetic.example", icon: Mail, href: "mailto:business@kinetic.example" },
-  { label: "1200 Market Street, Suite 400", icon: Building2, href: null }
+  { label: publicContact.phone.display, icon: Phone, href: publicContact.phone.href },
+  { label: publicContact.email.display, icon: Mail, href: publicContact.email.href },
+  { label: publicContact.address, icon: Building2, href: null }
 ];
 
 // BUG FIX: Removed the dead "Check Availability" form — the Input + Button

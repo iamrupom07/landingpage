@@ -1,23 +1,48 @@
 import { BrandLogo } from "@/features/landing/components/brand-logo";
+import { publicContact } from "@/lib/public-contact";
+
+type FooterLink = {
+  label: string;
+  href?: string;
+};
 
 const footerGroups = [
   {
     title: "Company",
-    links: ["Why Kinetic", "Coverage", "Business Plans", "Careers"]
+    links: [
+      { label: "Why Kinetic", href: "#features" },
+      { label: "Coverage", href: "#coverage" },
+      { label: "Business Plans", href: "#pricing" },
+      { label: "Careers", href: "#quote" }
+    ]
   },
   {
     title: "Services",
-    links: ["Business Internet", "Static IP", "Managed Wi-Fi", "Multi-location"]
+    links: [
+      { label: "Business Internet", href: "#pricing" },
+      { label: "Static IP", href: "#quote" },
+      { label: "Managed Wi-Fi", href: "#quote" },
+      { label: "Multi-location", href: "#quote" }
+    ]
   },
   {
     title: "Support",
-    links: ["Contact Support", "Installation", "Billing", "Network Status"]
+    links: [
+      { label: "Contact Support", href: "#quote" },
+      { label: "Installation", href: "#quote" },
+      { label: "Billing", href: "#quote" },
+      { label: "Network Status", href: "#quote" }
+    ]
   },
   {
     title: "Contact",
-    links: ["(555) 218-9044", "business@kinetic.example", "1200 Market Street, Suite 400"]
+    links: [
+      { label: publicContact.phone.display, href: publicContact.phone.href },
+      { label: publicContact.email.display, href: publicContact.email.href },
+      { label: publicContact.address }
+    ]
   }
-];
+] satisfies Array<{ title: string; links: FooterLink[] }>;
 
 export function Footer() {
   return (
@@ -36,10 +61,14 @@ export function Footer() {
                 <h3 className="font-display text-sm font-extrabold text-slate-950">{group.title}</h3>
                 <ul className="mt-4 space-y-3">
                   {group.links.map((link) => (
-                    <li key={link}>
-                      <a href="#quote" className="text-sm text-slate-600 transition-colors hover:text-slate-950">
-                        {link}
-                      </a>
+                    <li key={link.label}>
+                      {link.href ? (
+                        <a href={link.href} className="text-sm text-slate-600 transition-colors hover:text-slate-950">
+                          {link.label}
+                        </a>
+                      ) : (
+                        <span className="text-sm text-slate-600">{link.label}</span>
+                      )}
                     </li>
                   ))}
                 </ul>

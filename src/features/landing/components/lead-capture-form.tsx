@@ -131,7 +131,7 @@ export function LeadCaptureForm() {
             id="phone"
             className="mt-2"
             inputMode="tel"
-            placeholder="(555) 218-9044"
+            placeholder="Best number to reach you"
             aria-invalid={Boolean(errors.phone)}
             aria-describedby="phone-error"
             {...register("phone")}
@@ -156,7 +156,7 @@ export function LeadCaptureForm() {
           <Input
             id="businessAddress"
             className="mt-2"
-            placeholder="1200 Market Street, Suite 400"
+            placeholder="Street address, city, state"
             aria-invalid={Boolean(errors.businessAddress)}
             aria-describedby="businessAddress-error"
             {...register("businessAddress")}
