@@ -75,7 +75,7 @@ export function DashboardContent({ summary, recentLeads }: DashboardContentProps
         />
       </div>
 
-      <div id="analytics" className="charts-row">
+      <div className="charts-row">
         <PipelineBar summary={summary} />
         <PlanCard summary={summary} />
       </div>

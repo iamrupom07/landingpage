@@ -4,7 +4,6 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  BarChart3,
   ChevronRight,
   ClipboardList,
   LayoutDashboard,
@@ -21,7 +20,6 @@ const NAV_ITEMS = [
   { label: "Dashboard",        href: "/admin/dashboard",        icon: LayoutDashboard },
   { label: "Leads",            href: "/admin/leads",            icon: Users },
   { label: "Form Submissions", href: "/admin/form-submissions", icon: ClipboardList },
-  { label: "Analytics",        href: "/admin/dashboard",        icon: BarChart3, anchor: "analytics" },
 ];
 
 type AdminShellProps = {
@@ -92,13 +90,8 @@ function AdminSidebar({ email, mobile, onClose }: AdminSidebarProps) {
     });
   }
 
-  function handleNavClick(item: (typeof NAV_ITEMS)[number]) {
+  function handleNavClick() {
     onClose?.();
-    if (item.anchor) {
-      setTimeout(() => {
-        document.getElementById(item.anchor!)?.scrollIntoView({ behavior: "smooth" });
-      }, 100);
-    }
   }
 
   return (
@@ -125,17 +118,15 @@ function AdminSidebar({ email, mobile, onClose }: AdminSidebarProps) {
         <p className="admin-nav-section-label">Menu</p>
         {NAV_ITEMS.map((item) => {
           const active =
-            item.anchor
-              ? false
-              : pathname === item.href ||
-                (item.href !== "/admin/dashboard" && pathname.startsWith(item.href));
+            pathname === item.href ||
+            (item.href !== "/admin/dashboard" && pathname.startsWith(item.href));
           const Icon = item.icon;
 
           return (
             <Link
               key={item.label}
               href={item.href}
-              onClick={() => handleNavClick(item)}
+              onClick={handleNavClick}
               className={cn("admin-nav-item", active && "admin-nav-item--active")}
             >
               <Icon className="h-4 w-4 flex-shrink-0" />

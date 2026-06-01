@@ -18,6 +18,8 @@ type GetLeadsParams = {
   source?:   LeadSource | "all";
 };
 
+type ExportLeadsParams = Pick<GetLeadsParams, "search" | "status" | "plan" | "source">;
+
 type ApiLeadsResponse = {
   success:    boolean;
   leads:      Lead[];
@@ -60,6 +62,29 @@ export async function getLeads(
 export async function getLead(id: string, token?: string): Promise<Lead> {
   const res = await apiFetch<{ success: boolean; data: Lead }>(`/api/leads/${id}`, { token });
   return res.data;
+}
+
+export async function exportLeads(
+  params: ExportLeadsParams = {},
+  token?: string
+): Promise<{ csv: string; filename: string }> {
+  const { search = "", status = "all", plan = "all", source = "all" } = params;
+  const query = new URLSearchParams();
+
+  if (search)           query.set("search", search);
+  if (status !== "all") query.set("status", status);
+  if (plan   !== "all") query.set("plan",   plan);
+  if (source !== "all") query.set("source", source);
+
+  const suffix = query.toString() ? `?${query}` : "";
+  const res = await apiFetch<Response>(`/api/leads/export${suffix}`, { token });
+  const disposition = res.headers.get("content-disposition") ?? "";
+  const filenameMatch = disposition.match(/filename="?([^"]+)"?/i);
+
+  return {
+    csv: await res.text(),
+    filename: filenameMatch?.[1] ?? `leads-${new Date().toISOString().slice(0, 10)}.csv`,
+  };
 }
 
 export async function createManualLead(

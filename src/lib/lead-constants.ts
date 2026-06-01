@@ -1,37 +1,35 @@
 /**
  * Single source of truth for lead status and plan display labels/colours.
  *
- * BUG FIX: STATUS_LABELS, STATUS_COLORS, and PLAN_LABELS were copy-pasted
- * identically into FormSubmissionsPage.tsx, ManualLeadsPage.tsx, and
- * leads.schema.ts. Any future update had to be made in 3+ places.
- * Centralised here so the whole codebase imports from one location.
+ * Keys match the API's lowercase values ("new", "contacted", etc.) and the
+ * LeadStatus type in types/admin.ts. Do NOT use uppercase keys here — the
+ * API returns lowercase and indexing uppercase keys with lowercase values
+ * returns undefined, breaking every badge and label in the admin UI.
  */
 
-export type LeadStatus =
-  | "NEW"
-  | "CONTACTED"
-  | "QUALIFIED"
-  | "CLOSED_WON"
-  | "CLOSED_LOST";
+import type { LeadStatus } from "@/types/admin";
+
+export type { LeadStatus };
 
 export const STATUS_LABELS: Record<LeadStatus, string> = {
-  NEW: "New",
-  CONTACTED: "Contacted",
-  QUALIFIED: "Qualified",
-  CLOSED_WON: "Won",
-  CLOSED_LOST: "Lost"
+  new:         "New",
+  contacted:   "Contacted",
+  qualified:   "Qualified",
+  closed_won:  "Won",
+  closed_lost: "Lost",
 };
 
 export const STATUS_COLORS: Record<LeadStatus, string> = {
-  NEW: "bg-blue-100 text-blue-800 border-blue-200",
-  CONTACTED: "bg-amber-100 text-amber-800 border-amber-200",
-  QUALIFIED: "bg-purple-100 text-purple-800 border-purple-200",
-  CLOSED_WON: "bg-emerald-100 text-emerald-800 border-emerald-200",
-  CLOSED_LOST: "bg-slate-100 text-slate-600 border-slate-200"
+  new:         "bg-blue-100 text-blue-800 border-blue-200",
+  contacted:   "bg-amber-100 text-amber-800 border-amber-200",
+  qualified:   "bg-purple-100 text-purple-800 border-purple-200",
+  closed_won:  "bg-emerald-100 text-emerald-800 border-emerald-200",
+  closed_lost: "bg-slate-100 text-slate-600 border-slate-200",
 };
 
+// Plan keys match the API's lowercase values ("starter", "professional", "enterprise")
 export const PLAN_LABELS: Record<string, string> = {
-  STARTER: "300 Mbps",
-  PROFESSIONAL: "1 Gig",
-  ENTERPRISE: "2 Gig"
+  starter:      "300 Mbps",
+  professional: "1 Gig",
+  enterprise:   "2 Gig",
 };

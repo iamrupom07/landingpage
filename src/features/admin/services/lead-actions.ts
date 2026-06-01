@@ -5,6 +5,7 @@ import { requireAdminToken } from "../auth/session";
 import {
   createManualLead,
   deleteLead,
+  exportLeads,
   getAnalytics,
   getLead,
   getLeads,
@@ -20,6 +21,11 @@ export async function getLeadsAction(params: Parameters<typeof getLeads>[0]) {
 export async function getLeadAction(id: string) {
   const token = await requireAdminToken();
   return getLead(id, token);
+}
+
+export async function exportLeadsAction(params: Parameters<typeof exportLeads>[0]) {
+  const token = await requireAdminToken();
+  return exportLeads(params, token);
 }
 
 export async function getAnalyticsAction() {

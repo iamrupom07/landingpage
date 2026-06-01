@@ -125,7 +125,6 @@ export function AdminLoginForm({ defaultEmail, defaultPassword }: AdminLoginForm
           </Button>
         </form>
 
-        <p className="mt-4 text-center text-xs text-slate-400">Demo credentials pre-filled above</p>
       </div>
     </div>
   );

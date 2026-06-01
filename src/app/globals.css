@@ -1018,6 +1018,7 @@ p {
 
 .ls {
   max-width: 1100px;
+  margin: 0 auto;
 }
 
 .lh {
@@ -1044,7 +1045,39 @@ p {
 .lead-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 0.5rem;
+}
+
+.createbtn {
+  display: inline-flex;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid #0f172a;
+  border-radius: 8px;
+  background: #0f172a;
+  padding: 0.5rem 0.875rem;
+  color: white;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s, box-shadow 0.15s, border-color 0.15s;
+}
+
+.createbtn:hover:not(:disabled) {
+  border-color: #1e293b;
+  background: #1e293b;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.16);
+}
+
+.createbtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .expbtn {
@@ -1437,6 +1470,180 @@ p {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+}
+
+.admin-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  background: rgba(15, 23, 42, 0.42);
+  padding: 1rem;
+  backdrop-filter: blur(2px);
+}
+
+.admin-modal {
+  width: min(100%, 680px);
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.22);
+}
+
+.admin-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  padding: 1.25rem 1.25rem 1rem;
+}
+
+.admin-modal-title {
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.admin-modal-sub {
+  margin-top: 0.125rem;
+  color: #64748b;
+  font-size: 0.8125rem;
+}
+
+.admin-modal-close {
+  display: flex;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.admin-modal-close:hover {
+  background: #e2e8f0;
+}
+
+.admin-form-error {
+  margin: 1rem 1.25rem 0;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fef2f2;
+  padding: 0.75rem 0.875rem;
+  color: #991b1b;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.create-lead-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .form-grid-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.admin-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.375rem;
+  color: #475569;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.admin-field-input {
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: white;
+  padding: 0 0.75rem;
+  color: #0f172a;
+  font-size: 0.875rem;
+  font-weight: 500;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.admin-field-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.admin-field-textarea {
+  height: auto;
+  min-height: 90px;
+  resize: vertical;
+  padding: 0.625rem 0.75rem;
+}
+
+.admin-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 1rem;
+}
+
+.admin-error-shell {
+  display: flex;
+  min-height: 52vh;
+  max-width: 460px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  margin: 0 auto;
+  color: #475569;
+}
+
+.admin-error-icon {
+  display: flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #fed7aa;
+  border-radius: 10px;
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+.admin-error-title {
+  margin-top: 1rem;
+  color: #0f172a;
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.admin-error-copy {
+  margin: 0.375rem 0 1rem;
+  color: #64748b;
+  font-size: 0.875rem;
 }
 
 .pginfo {
